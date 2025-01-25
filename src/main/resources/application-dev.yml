@@ -1,0 +1,35 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+
+    gateway:
+      routes:
+        - id: assetflow-user-service
+          uri: ${ASSETFLOW_USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/v1/assetflow/users/**
+        - id: assetflow-portfolio-service
+          uri: ${ASSETFLOW_PORTFOLIO_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/v1/assetflow/portfolios/**
+        - id: assetflow-trade-service
+          uri: ${ASSETFLOW_TRADE_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/v1/assetflow/trades/**
+      httpclient:
+        connect-timeout: 2000
+        response-timeout: 5s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "gateway, health, routes"
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.http.server.reactive: DEBUG
