@@ -9,17 +9,77 @@ spring:
           uri: ${ASSETFLOW_USER_SERVICE_URL:http://localhost:8081}
           predicates:
             - Path=/v1/assetflow/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCircuitBreaker
         - id: assetflow-portfolio-service
           uri: ${ASSETFLOW_PORTFOLIO_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/v1/assetflow/portfolios/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: portfolioServiceCircuitBreaker
         - id: assetflow-trade-service
           uri: ${ASSETFLOW_TRADE_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/v1/assetflow/trades/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: tradeServiceCircuitBreaker
       httpclient:
         connect-timeout: 2000
         response-timeout: 5s
+        pool:
+          type: elastic
+          max-idle-time: 15s
+          max-life-time: 60s
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            methods: GET
+            series: SERVER_ERROR
+            exceptions: java.io.IOException,java.util.concurrent.TimeoutException
+            backoff:
+              firstBackoff: 50ms
+              maxBackOff: 500ms
+              factor: 2
+              basedOnPreviousValue: false
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter:
+            replenishRate: 10
+            burstCapacity: 20
+            requestedTokens: 1
+        - name: SaveSession
+
+  redis:
+    connect-timeout: 2s
+    host: localhost
+    port: 6380
+    timeout: 1s
+
+  session:
+    store-type: redis
+    timeout: 10m
+    redis:
+      namespace: assetflow:api
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 20
+        permittedNumberOfCallsInHalfOpenState: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15000
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
 
 management:
   endpoints:
@@ -33,3 +93,4 @@ logging:
     reactor.netty.http.client: DEBUG
     org.springframework.web: DEBUG
     org.springframework.http.server.reactive: DEBUG
+    io.github.resilience4j: DEBUG
