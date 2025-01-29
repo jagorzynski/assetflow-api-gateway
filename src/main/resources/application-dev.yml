@@ -51,9 +51,9 @@ spring:
         - name: RequestRateLimiter
           args:
             redis-rate-limiter:
-            replenishRate: 10
-            burstCapacity: 20
-            requestedTokens: 1
+              replenishRate: 10
+              burstCapacity: 20
+              requestedTokens: 1
         - name: SaveSession
 
   redis:
